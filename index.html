@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taht-ı Fetih: Yönet ve Geliştir</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --card: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --good: #10b981;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --accent: #3b82f6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(circle at top, #1e293b, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    .game {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 1rem;
+    }
+    .header, .panel {
+      background: rgba(17, 24, 39, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 14px;
+      padding: 1rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    .header h1 { margin: 0 0 .35rem; font-size: 1.7rem; }
+    .header p { margin: 0; color: var(--muted); }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: .7rem;
+      margin-top: 1rem;
+    }
+    .stat {
+      background: var(--card);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 10px;
+      padding: .7rem;
+    }
+    .stat .label { color: var(--muted); font-size: .82rem; }
+    .stat .value { font-size: 1.35rem; font-weight: 700; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .regions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: .8rem;
+    }
+    .region {
+      background: var(--card);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 12px;
+      padding: .8rem;
+      display: grid;
+      gap: .4rem;
+    }
+    .region h3 { margin: 0; font-size: 1.05rem; }
+    .tag {
+      display: inline-block;
+      font-size: .75rem;
+      padding: .2rem .45rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      margin-right: .3rem;
+    }
+    .ally { background: rgba(16,185,129,.15); color: #6ee7b7; border-color: rgba(16,185,129,.35); }
+    .enemy { background: rgba(239,68,68,.15); color: #fca5a5; border-color: rgba(239,68,68,.35); }
+    .neutral { background: rgba(59,130,246,.15); color: #93c5fd; border-color: rgba(59,130,246,.35); }
+
+    .actions {
+      display: grid;
+      gap: .6rem;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: .65rem .8rem;
+      color: white;
+      background: #374151;
+      cursor: pointer;
+      text-align: left;
+      font-weight: 600;
+      transition: transform .08s ease, filter .2s ease;
+    }
+    button:hover { filter: brightness(1.1); }
+    button:active { transform: translateY(1px); }
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      filter: none;
+    }
+    .btn-accent { background: var(--accent); }
+    .btn-good { background: var(--good); }
+    .btn-warn { background: var(--warn); color: #111827; }
+    .btn-bad { background: var(--bad); }
+
+    .log {
+      max-height: 320px;
+      overflow: auto;
+      display: grid;
+      gap: .5rem;
+    }
+    .log-entry {
+      border-left: 3px solid rgba(148,163,184,.4);
+      padding-left: .6rem;
+      font-size: .92rem;
+      color: #d1d5db;
+    }
+    .hint { color: var(--muted); font-size: .88rem; margin-top: .5rem; }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <section class="header">
+      <h1>Taht-ı Fetih</h1>
+      <p>Krallığını kur: <strong>Yönet</strong>, <strong>Geliştir</strong> ve doğru zamanda <strong>Fethet</strong>.</p>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="layout">
+      <section class="panel">
+        <h2>Bölgeler</h2>
+        <div class="regions" id="regions"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Eylemler</h2>
+        <div class="actions">
+          <button class="btn-accent" id="taxBtn">Vergi Topla (+altın, -halk mutluluğu)</button>
+          <button class="btn-good" id="farmBtn">Tarım Yatırımı (+gıda üretimi)</button>
+          <button class="btn-good" id="armyBtn">Asker Eğit (+ordu, -altın, -gıda)</button>
+          <button class="btn-warn" id="conquerBtn">Seçili Bölgeyi Fethet</button>
+          <button class="btn-bad" id="endTurnBtn">Turu Bitir</button>
+        </div>
+        <p class="hint">İpucu: Halk mutluluğu çok düşerse isyan riski artar. Ordu zayıfken fetih denemek pahalıya patlar.</p>
+      </section>
+    </section>
+
+    <section class="panel">
+      <h2>Krallık Günlüğü</h2>
+      <div class="log" id="log"></div>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      turn: 1,
+      gold: 120,
+      food: 100,
+      army: 55,
+      happiness: 68,
+      development: 1,
+      selectedRegionId: null,
+      regions: [
+        { id: 1, name: "Yeşilova", difficulty: 35, reward: { gold: 30, food: 20 }, owner: "player" },
+        { id: 2, name: "Demirkent", difficulty: 55, reward: { gold: 55, food: 10 }, owner: "neutral" },
+        { id: 3, name: "Gölhisar", difficulty: 72, reward: { gold: 40, food: 45 }, owner: "neutral" },
+        { id: 4, name: "Kuzeyburç", difficulty: 90, reward: { gold: 80, food: 35 }, owner: "enemy" },
+        { id: 5, name: "Şafak Limanı", difficulty: 65, reward: { gold: 65, food: 25 }, owner: "enemy" },
+      ],
+      logs: ["Tahta çıktın. Halk senden adalet, ordu senden zafer bekliyor."],
+      gameOver: false,
+    };
+
+    const statsEl = document.getElementById("stats");
+    const regionsEl = document.getElementById("regions");
+    const logEl = document.getElementById("log");
+
+    const buttons = {
+      tax: document.getElementById("taxBtn"),
+      farm: document.getElementById("farmBtn"),
+      army: document.getElementById("armyBtn"),
+      conquer: document.getElementById("conquerBtn"),
+      endTurn: document.getElementById("endTurnBtn"),
+    };
+
+    const statItems = [
+      ["Tur", () => state.turn],
+      ["Altın", () => state.gold],
+      ["Gıda", () => state.food],
+      ["Ordu", () => state.army],
+      ["Mutluluk", () => `${state.happiness}%`],
+      ["Gelişim", () => `Seviye ${state.development}`],
+      ["Toprak", () => `${state.regions.filter(r => r.owner === "player").length}/${state.regions.length}`],
+    ];
+
+    function pushLog(text) {
+      state.logs.unshift(`[Tur ${state.turn}] ${text}`);
+      state.logs = state.logs.slice(0, 18);
+    }
+
+    function clampResources() {
+      state.gold = Math.max(0, Math.round(state.gold));
+      state.food = Math.max(0, Math.round(state.food));
+      state.army = Math.max(0, Math.round(state.army));
+      state.happiness = Math.min(100, Math.max(0, Math.round(state.happiness)));
+    }
+
+    function upkeepAndGrowth() {
+      const owned = state.regions.filter(r => r.owner === "player").length;
+      state.food += owned * 8 + state.development * 5;
+      state.gold += owned * 6;
+
+      const upkeep = Math.max(0, state.army * 0.18 - state.development * 1.5);
+      state.food -= upkeep;
+
+      if (state.food < 20) {
+        state.happiness -= 6;
+        pushLog("Gıda kıtlığı söylentileri yayıldı. Halk huzursuz.");
+      }
+
+      if (state.happiness <= 25 && Math.random() < 0.4) {
+        const loss = 6 + Math.floor(Math.random() * 8);
+        state.army -= loss;
+        pushLog(`İç isyan çıktı! ${loss} askerini şehir güvenliğine ayırmak zorunda kaldın.`);
+      }
+
+      if (state.turn % 4 === 0 && state.gold >= 45) {
+        state.development += 1;
+        state.gold -= 45;
+        state.happiness += 4;
+        pushLog("Bilginler yeni sulama sistemi geliştirdi. Krallığın gelişti!");
+      }
+    }
+
+    function evaluateGameState() {
+      const owned = state.regions.filter(r => r.owner === "player").length;
+      if (owned === state.regions.length) {
+        state.gameOver = true;
+        pushLog("Bütün bölgeleri fethettin! Adın destanlara kazındı.");
+      } else if ((state.army <= 0 && state.gold < 20) || state.happiness <= 0) {
+        state.gameOver = true;
+        pushLog("Krallık çöktü. Tahtın elinden kaydı.");
+      }
+    }
+
+    function renderStats() {
+      statsEl.innerHTML = statItems
+        .map(([label, getValue]) => `
+          <div class="stat">
+            <div class="label">${label}</div>
+            <div class="value">${getValue()}</div>
+          </div>
+        `)
+        .join("");
+    }
+
+    function regionBadge(owner) {
+      if (owner === "player") return '<span class="tag ally">Senin</span>';
+      if (owner === "enemy") return '<span class="tag enemy">Düşman</span>';
+      return '<span class="tag neutral">Tarafsız</span>';
+    }
+
+    function renderRegions() {
+      regionsEl.innerHTML = state.regions
+        .map(region => {
+          const selected = state.selectedRegionId === region.id;
+          const disabled = region.owner === "player" ? "disabled" : "";
+          return `
+            <article class="region" style="outline:${selected ? "2px solid #60a5fa" : "none"}">
+              <h3>${region.name}</h3>
+              <div>${regionBadge(region.owner)}</div>
+              <div>Zorluk: <strong>${region.difficulty}</strong></div>
+              <div>Ödül: +${region.reward.gold} altın, +${region.reward.food} gıda</div>
+              <button ${disabled} onclick="selectRegion(${region.id})">${selected ? "Seçili" : "Bu Bölgeyi Seç"}</button>
+            </article>
+          `;
+        })
+        .join("");
+    }
+
+    function renderLog() {
+      logEl.innerHTML = state.logs
+        .map(entry => `<div class="log-entry">${entry}</div>`)
+        .join("");
+    }
+
+    function renderButtons() {
+      buttons.conquer.disabled = state.gameOver;
+      buttons.endTurn.disabled = state.gameOver;
+      buttons.tax.disabled = state.gameOver;
+      buttons.farm.disabled = state.gameOver || state.gold < 30;
+      buttons.army.disabled = state.gameOver || state.gold < 25 || state.food < 20;
+      if (!state.selectedRegionId || state.regions.find(r => r.id === state.selectedRegionId)?.owner === "player") {
+        buttons.conquer.disabled = true;
+      }
+    }
+
+    function render() {
+      clampResources();
+      evaluateGameState();
+      renderStats();
+      renderRegions();
+      renderLog();
+      renderButtons();
+    }
+
+    window.selectRegion = (id) => {
+      if (state.gameOver) return;
+      state.selectedRegionId = id;
+      const region = state.regions.find(r => r.id === id);
+      pushLog(`${region.name} gözcüler tarafından işaretlendi. Keşif raporu hazır.`);
+      render();
+    };
+
+    buttons.tax.addEventListener("click", () => {
+      const gain = 30 + state.development * 5;
+      state.gold += gain;
+      state.happiness -= 5;
+      pushLog(`Vergi topladın: +${gain} altın. Halk bir miktar huzursuz.`);
+      render();
+    });
+
+    buttons.farm.addEventListener("click", () => {
+      state.gold -= 30;
+      state.food += 42 + state.development * 4;
+      state.happiness += 2;
+      pushLog("Yeni tarlalar açıldı. Gıda depoları dolmaya başladı.");
+      render();
+    });
+
+    buttons.army.addEventListener("click", () => {
+      state.gold -= 25;
+      state.food -= 20;
+      const gain = 12 + state.development * 2;
+      state.army += gain;
+      pushLog(`Kışlada eğitim tamamlandı. +${gain} asker orduna katıldı.`);
+      render();
+    });
+
+    buttons.conquer.addEventListener("click", () => {
+      if (!state.selectedRegionId) {
+        pushLog("Önce bir bölge seçmelisin.");
+        return render();
+      }
+
+      const region = state.regions.find(r => r.id === state.selectedRegionId);
+      if (!region || region.owner === "player") return;
+
+      const power = state.army + state.development * 6 + Math.random() * 25;
+      const defense = region.difficulty + (region.owner === "enemy" ? 15 : 0) + Math.random() * 20;
+
+      state.gold -= 20;
+      state.food -= 15;
+
+      if (power >= defense) {
+        region.owner = "player";
+        state.gold += region.reward.gold;
+        state.food += region.reward.food;
+        state.happiness += 5;
+        const loss = Math.max(4, Math.floor(region.difficulty * 0.12));
+        state.army -= loss;
+        pushLog(`${region.name} fethedildi! Ganimet toplandı, ancak ${loss} asker kaybettin.`);
+      } else {
+        const loss = 10 + Math.floor(region.difficulty * 0.2);
+        state.army -= loss;
+        state.happiness -= 4;
+        pushLog(`${region.name} kuşatması başarısız! ${loss} asker kaybettin.`);
+      }
+
+      render();
+    });
+
+    buttons.endTurn.addEventListener("click", () => {
+      state.turn += 1;
+      upkeepAndGrowth();
+      pushLog("Yeni tur başladı. Saray meclisi bir sonraki hamleni bekliyor.");
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
